@@ -16,7 +16,7 @@ function CartItems({cart}) {
             customerId: cart[index].customerId,
             shouldDelete: true
         })
-        console.log("deleted from cart", DeleteFromCart);
+        
       } catch (error) {
         console.log(error)
       }

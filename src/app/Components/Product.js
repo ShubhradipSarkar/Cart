@@ -5,7 +5,7 @@ import { useRecoilState } from 'recoil';
 import { cartState } from '../../recoilState';
 import { useUser } from '@clerk/nextjs';
 import { SignInButton } from '@clerk/nextjs';
-// import { useUser } from '@clerk/nextjs';
+
 // SkeletonLoader component
 const SkeletonLoader = () => (
   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -24,22 +24,39 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useRecoilState(cartState);
   const [notification, setNotification] = useState('');
-  const [loading, setLoading] = useState(true); // Loading state
-  const { isSignedIn, user } = useUser(); // Check if the user is signed in
-    // const {user, isSignedIn} = useUser();
-// console.log(user.id);
+  const [loading, setLoading] = useState(true);
+  const [cartItemCount, setCartItemCount] = useState(0); // State for item count
+  const { isSignedIn, user } = useUser();
+
   useEffect(() => {
     axios.get('/api/users/ListProduct')
       .then(response => {
         setProducts(response.data.existingItem);
-        console.log(response);
-        setLoading(false); // Set loading to false after data is fetched
+        setLoading(false);
       })
       .catch(error => {
         console.error('Error fetching products:', error);
-        setLoading(false); // Ensure loading is false even if there's an error
+        setLoading(false);
       });
-  }, []);
+
+    // Fetch cart items count if the user is signed in
+    if (isSignedIn) {
+      fetchCartItemCount();
+    }
+  }, [isSignedIn, cart]);
+
+  const fetchCartItemCount = async() => {
+    await axios.put('/api/users/CountCartItems',{
+      customerId: user.id
+    })
+      .then(response => {
+        
+        setCartItemCount(response.data.ItemsCount);
+      })
+      .catch(error => {
+        console.error('Error fetching cart items count:', error);
+      });
+  };
 
   // Filter products based on the search term
   const filteredProducts = products.filter(product =>
@@ -49,27 +66,28 @@ const Products = () => {
   // Add product to cart
   const addToCart = async(product) => {
     try {
-        const AddingToCart = await axios.post("/api/users/AddToCart", {
-            productImageURL: product.productImageURL,
-            productPrice: product.productPrice,
-            productTitle: product.productTitle,
-            customerId: user.id,
-            shouldDelete: false
-        })
+      const AddingToCart = await axios.post("/api/users/AddToCart", {
+        productImageURL: product.productImageURL,
+        productPrice: product.productPrice,
+        productTitle: product.productTitle,
+        customerId: user.id,
+        shouldDelete: false
+      });
+      // fetchCartItemCount();
+      if (isSignedIn) {
+        setCart((prevCart) => [...prevCart, product]);
+        setNotification(`${product.productTitle} added to cart`);
+        fetchCartItemCount(); // Update the cart count after adding a product
 
+        // Clear notification after 2 seconds
+        setTimeout(() => {
+          setNotification('');
+        }, 2000);
+      } else {
+        redirectToSignIn(); // Redirect to Clerk sign-in page
+      }
     } catch (error) {
-        console.log(error);
-    }
-    if (isSignedIn) {
-      setCart((prevCart) => [...prevCart, product]);
-      setNotification(`${product.productTitle} added to cart`);
-
-      // Clear notification after 2 seconds
-      setTimeout(() => {
-        setNotification('');
-      }, 2000);
-    } else {
-      redirectToSignIn(); // Redirect to Clerk sign-in page
+      console.log(error);
     }
   };
 
@@ -84,13 +102,17 @@ const Products = () => {
       />
 
       {notification && (
-        <div className="fixed top-0 left-0 right-0 bg-green-500 text-white text-center p-2">
+        <div className="fixed z-50 m-2 rounded-lg top-0 left-0 right-0 bg-green-500 text-white text-center p-2">
           {notification}
         </div>
       )}
 
+      <div className="mb-4 text-right text-black font-bold">
+        {isSignedIn ? `Items in cart: ${cartItemCount}` : 'Sign in to see your cart'}
+      </div>
+
       {loading ? (
-        <SkeletonLoader /> // Show skeleton loader while loading
+        <SkeletonLoader />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredProducts.map(product => (
@@ -101,17 +123,18 @@ const Products = () => {
               </h2>
               <p className="text-gray-700">${product.productPrice}</p>
               <div className='flex justify-center'>
-                {isSignedIn? (<button
-                  className="mt-4 absolute bottom-0 mx-auto m-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                  onClick={() => addToCart(product)}
-                >
-                  Add to Cart
-                </button>):(
-                    <div className='mt-4 absolute bottom-0 mx-auto m-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600'>
-                        <SignInButton>Sign in to add order</SignInButton>
-                    </div>
+                {isSignedIn ? (
+                  <button
+                    className="mt-4 absolute bottom-0 mx-auto m-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    onClick={() => addToCart(product)}
+                  >
+                    Add to Cart
+                  </button>
+                ) : (
+                  <div className='mt-4 absolute bottom-0 mx-auto m-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600'>
+                    <SignInButton>Sign in to add order</SignInButton>
+                  </div>
                 )}
-                
               </div>
             </div>
           ))}

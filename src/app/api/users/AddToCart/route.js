@@ -5,7 +5,13 @@ import { NextRequest, NextResponse } from "next/server";
 connect();
 
 export async function GET(request){
-
+    const reqBody = await request.json();
+        const {  customerId} = reqBody;
+    const Items = await CartItems.find({ customerId});
+    const ItemsCount = Items.length();
+    return NextResponse.json({
+        ItemsCount,
+    })
 }
 
 export async function POST(request) {
@@ -63,7 +69,7 @@ export async function PUT(request) {
         const reqBody = await request.json();
         const {customerId} = reqBody;
 
-        console.log("customer id = ", customerId);
+        
         if (!customerId) {
             return NextResponse.json({ error: "Customer ID is required" }, { status: 400 });
         }

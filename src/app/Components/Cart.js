@@ -26,7 +26,7 @@ const {user} = useUser();
             customerId: customerId
         });
         const fetchedCart = response.data.allItems;
-        console.log(response);
+        
         setCart(fetchedCart);
       } catch (error) {
         console.error('Failed to fetch cart items:', error);
