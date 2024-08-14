@@ -15,18 +15,17 @@ const Cart = () => {
   const [discount, setDiscount] = useState(0);
   const [selectedDiscount, setSelectedDiscount] = useState(null);
   const { calculateTotalPrice, calculateDiscount } = useCart();
-const {user} = useUser();
+  const { user } = useUser();
+
   useEffect(() => {
     // Fetch cart items from backend and update Recoil state
     const fetchCartItems = async () => {
       try {
         const customerId = user.id;
-        // console.log("customeeeeeeeeeeeeer id ", customerId); // Replace with actual customer ID
-        const response = await axios.put(`/api/users/AddToCart`,{
-            customerId: customerId
+        const response = await axios.put(`/api/users/AddToCart`, {
+          customerId: customerId
         });
         const fetchedCart = response.data.allItems;
-        
         setCart(fetchedCart);
       } catch (error) {
         console.error('Failed to fetch cart items:', error);
@@ -34,7 +33,7 @@ const {user} = useUser();
     };
 
     fetchCartItems();
-  }, [user]); // Empty dependency array ensures this runs once on mount
+  }, [user]);
 
   useEffect(() => {
     const newTotalPrice = calculateTotalPrice(cart);
@@ -92,6 +91,8 @@ const {user} = useUser();
     return selectedDiscount === type ? baseClasses + activeClass : baseClasses + inactiveClass;
   };
 
+  const totalPayable = Math.max(0, initialTotalPrice - discount); // Ensure total payable is not negative
+
   return (
     <div className="p-4">
       <h1 className="text-3xl text-slate-800 font-bold mb-4">Your Cart</h1>
@@ -104,7 +105,7 @@ const {user} = useUser();
           <div className="mt-8">
             <h2 className="text-xl text-black font-bold">Total Price: ${initialTotalPrice.toFixed(2)}</h2>
             <h2 className="text-lg text-green-700 font-bold">Discount: ${discount.toFixed(2)}</h2>
-            <h2 className="text-xl text-black font-bold">Total Payable: ${(initialTotalPrice - discount).toFixed(2)}</h2>
+            <h2 className="text-xl text-black font-bold">Total Payable: ${totalPayable.toFixed(2)}</h2>
             <div className="mt-4">
               <button
                 onClick={applyFlatDiscount}
